@@ -1,138 +1,176 @@
-# PhishGuard AI — Phishing URL Detection System
-### Final Year Project | Caleb University, Imota, Lagos
-**Student:** Demilade Ogunlade | **Matric No:** 22/11227  
-**Supervisor:** Prof. M. K. Aregbesola | **Session:** 2024/2025
-
+Klevr — AI-Based Phishing URL Detection System
+Final Year Project | B.Sc. Cyber Security
+Caleb University, Imota, Lagos | Session 2025/2026
+Student: Olubo Demilade Subomi | Matric: 22/11227
+Supervisor: Prof. M. K. Aregbesola
 ---
-
-## Project Overview
-PhishGuard AI is an AI-powered phishing URL detection system that uses
-machine learning (Random Forest) to classify URLs as safe or phishing
-in real time. The system analyses 26 lexical, structural, and content-based
-features extracted purely from the URL string — no external API calls,
-DNS lookups, or internet access required at inference time.
-
+Live Demo
+Deployed Application:
+https://klevr---phising-detection-system-mce38ocvuwxknndwphhdxu.streamlit.app/
+GitHub Repository:
+https://github.com/beatsbyvibez/Klevr---Phising-Detection-system
 ---
-
-## File Structure
+Project Overview
+Klevr is a three-layer phishing URL detection system that combines
+threat-intelligence blacklists, a curated allowlist, and a Random Forest
+machine learning classifier to identify malicious URLs in real time.
+The system provides plain-English advisory explanations alongside every
+verdict, making it accessible to non-technical users.
+The name Klevr is a deliberate stylisation of the word "clever",
+reflecting the system's use of intelligent, well-engineered detection
+rather than brute-force computation.
+---
+Detection Architecture
+Klevr processes every submitted URL through the following layers in order:
+Layer 0a — Known-Good Allowlist
+A curated set of approximately 60 trusted domain names. If the submitted
+URL matches a trusted domain, a Safe verdict is returned immediately at
+99% confidence. This layer prevents false positives on major legitimate
+sites regardless of what the downstream layers detect.
+Layer 0b — Threat-Intelligence Blacklist
+Aggregates data from two public threat-intelligence feeds:
+PhishTank (Cisco Talos) — human-verified phishing URLs
+URLhaus (abuse.ch) — recent malware and phishing URLs
+The cache refreshes automatically every six hours. A blacklist hit
+returns a Confirmed Phishing verdict at 99% confidence, but only if
+the allowlist has not already cleared the URL.
+Layer 1 — Random Forest Classifier
+A scikit-learn RandomForestClassifier with 300 decision trees trained
+on 26 lexical and structural features extracted from the URL string.
+Trained on the Hannousse and Yahiouche (2021) benchmark dataset of
+11,430 labelled URLs. No network request is required to classify a URL
+at this layer.
+Layer 2 — Deep Page Content Scanner (Optional)
+Fetches the live page content and inspects four indicators:
+form destination mismatch, hidden iframes, excessive redirects,
+and wallet-draining JavaScript. Produces a suspicion score from 0 to 4.
+Opt-in only via a checkbox in the interface.
+Advisory Module
+Rule-based templating engine that generates plain-English explanations
+of every verdict, streamed to the interface character by character.
+Always concludes with a concrete recommended action.
+---
+Model Performance
+Trained and evaluated on the Hannousse and Yahiouche (2021) dataset
+using an 80/20 stratified train-test split:
+Metric	Value
+Accuracy	89.3%
+Precision	88.1%
+Recall	90.8%
+F1 Score	89.4%
+ROC-AUC	0.9588
+CV F1 (5-fold)	0.8932 +/- 0.0026
+Features used	26
+Training samples	9,144 URLs
+Test samples	2,286 URLs
+---
+Features
+The 26 URL features extracted by features.py fall into four categories:
+Length and Character Composition (11 features)
+url_length, domain_length, path_length, query_length, num_params,
+dot_count, hyphen_count, at_count, slash_count, double_slash,
+underscore_count, has_question_mark, equal_sign_count, ampersand_count,
+digit_ratio, domain_entropy
+Structural and Syntactic (3 features)
+subdomain_count, subdomain_length, has_port
+Protocol and Obfuscation (4 features)
+has_https, has_ip_address, has_hex_encoding, is_shortener
+Content and Keyword (3 features)
+keyword_count, brand_in_subdomain, suspicious_tld
+---
+Project Structure
 ```
-phishing_detector/
-├── app.py                  ← Main Streamlit web application
-├── features.py             ← 26-feature URL extraction module
-├── train_model.py          ← Model training + evaluation script
-├── generate_dataset.py     ← Synthetic dataset generator (for demo)
-├── logger.py               ← Prediction history logger
-├── requirements.txt        ← Python dependencies
-├── urls.csv                ← Training dataset (generated or your own)
-├── model.pkl               ← Trained Random Forest model (after training)
-├── feature_cols.pkl        ← Feature column order (after training)
-├── model_report.txt        ← Evaluation metrics report (after training)
-├── confusion_matrix.png    ← Confusion matrix plot (after training)
-├── roc_curve.png           ← ROC curve plot (after training)
-├── feature_importance.png  ← Feature importance chart (after training)
-└── prediction_log.csv      ← Auto-generated prediction history log
+Klevr---Phising-Detection-system/
+├── app.py                  Main Streamlit application
+├── allowlist.py            Layer 0a curated trusted domains
+├── blacklist.py            Layer 0b PhishTank + URLhaus integration
+├── features.py             26-feature URL extractor
+├── advisor.py              Rule-based advisory engine
+├── logger.py               Prediction history logging
+├── web_analyzer.py         Layer 2 page content scanner
+├── train_model.py          Model training script
+├── prepare_dataset.py      Dataset preparation utilities
+├── model.pkl               Trained Random Forest model (serialised)
+├── feature_cols.pkl        Feature column ordering for inference
+├── confusion_matrix.png    Confusion matrix plot
+├── roc_curve.png           ROC curve plot
+├── feature_importance.png  Feature importance chart
+├── model_report.txt        Full classification report
+├── requirements.txt        Python dependencies
+├── config.toml             Streamlit configuration
+└── README.md               This file
 ```
-
 ---
-
-## Quick Start
-
-### 1. Install dependencies
+Installation and Local Setup
+Requirements: Python 3.9 or higher
+Step 1 — Clone the repository
+```bash
+git clone https://github.com/beatsbyvibez/Klevr---Phising-Detection-system.git
+cd Klevr---Phising-Detection-system
+```
+Step 2 — Install dependencies
 ```bash
 pip install -r requirements.txt
 ```
-
-### 2A. Use your own dataset (recommended)
-Your CSV must have a `url` column and a `label` column (0=safe, 1=phishing):
-```bash
-python train_model.py --dataset your_data.csv
-```
-
-### 2B. Use the synthetic demo dataset
-```bash
-python generate_dataset.py --samples 10000 --output urls.csv
-python train_model.py --dataset urls.csv
-```
-
-### 3. Launch the web app
+Step 3 — Run the application
 ```bash
 streamlit run app.py
 ```
-
+The application will open automatically at http://localhost:8501
+Note: The blacklist cache will populate automatically on first run
+by downloading the PhishTank and URLhaus feeds. This requires an active
+internet connection and may take 30 to 60 seconds on first launch.
 ---
-
-## The 26 Features
-
-| # | Feature | Category | Description |
-|---|---------|----------|-------------|
-| 1 | url_length | Lexical | Total URL character length |
-| 2 | domain_length | Lexical | Length of domain name |
-| 3 | path_length | Lexical | Length of URL path |
-| 4 | query_length | Lexical | Length of query string |
-| 5 | num_params | Lexical | Number of query parameters |
-| 6 | dot_count | Character | Number of dots in URL |
-| 7 | hyphen_count | Character | Number of hyphens in URL |
-| 8 | at_count | Character | Presence of @ symbol (browser redirect trick) |
-| 9 | slash_count | Character | Path depth (slash count) |
-| 10 | double_slash | Character | Double // in path (redirect obfuscation) |
-| 11 | underscore_count | Character | Number of underscores |
-| 12 | has_question_mark | Character | Query string present |
-| 13 | equal_sign_count | Character | Number of = signs |
-| 14 | ampersand_count | Character | Number of & signs |
-| 15 | digit_ratio | Character | Proportion of digits in URL |
-| 16 | domain_entropy | Character | Shannon entropy of domain name |
-| 17 | subdomain_count | Structural | Number of subdomains |
-| 18 | subdomain_length | Structural | Total subdomain length |
-| 19 | has_port | Structural | Non-standard port in URL |
-| 20 | has_https | Protocol | HTTPS protocol used |
-| 21 | has_ip_address | Obfuscation | Raw IP address instead of domain |
-| 22 | has_hex_encoding | Obfuscation | Excessive percent/hex encoding |
-| 23 | is_shortener | Obfuscation | URL shortening service detected |
-| 24 | keyword_count | Content | Count of suspicious keywords |
-| 25 | brand_in_subdomain | Content | Trusted brand spoofed in subdomain |
-| 26 | suspicious_tld | Content | High-risk top-level domain |
-
----
-
-## Model Architecture
-- **Algorithm:** Random Forest Classifier
-- **Estimators:** 300 decision trees
-- **Class weights:** Balanced (handles imbalanced datasets)
-- **Validation:** 80/20 train-test split + 5-fold stratified cross-validation
-- **Metrics:** Accuracy, Precision, Recall, F1 Score, ROC-AUC
-
----
-
-## App Pages
-| Page | Description |
-|------|-------------|
-| Single URL Analysis | Classify one URL, see confidence score, feature breakdown, suspicious signals |
-| Batch URL Analysis | Upload CSV of URLs, download classified results |
-| Model Performance | View accuracy metrics, confusion matrix, ROC curve, feature importance |
-| Prediction Log | Full history of all predictions with export option |
-| About | Project documentation and research context |
-
----
-
-## Using a Real Dataset (Recommended for FYP)
-For a stronger academic result, use one of these public datasets:
-- **PhishTank** — https://www.phishtank.com/developer_info.php
-- **OpenPhish** — https://openphish.com/
-- **UCI Phishing dataset** — https://archive.ics.uci.edu/dataset/967
-- **Kaggle Phishing URL dataset** — search "phishing URL dataset" on Kaggle
-
-Format your CSV as:
+Retraining the Model
+To retrain the Random Forest model on your own dataset:
+```bash
+python train_model.py --dataset your_dataset.csv
 ```
-url,label
-https://google.com,0
-http://paypal-verify.tk/login,1
-```
-
+The dataset must contain a url column and a label column where 1
+indicates phishing and 0 indicates legitimate. The script will output
+model.pkl, feature_cols.pkl, confusion_matrix.png, roc_curve.png,
+feature_importance.png, and model_report.txt.
 ---
-
-## Notes
-- The 100% accuracy on the synthetic dataset is expected — the data was
-  algorithmically generated with deterministic patterns. On real-world
-  datasets expect 94 to 98% accuracy.
-- The model runs entirely offline after training. No API keys needed.
-- prediction_log.csv is auto-created on first use.
+Dependencies
+```
+streamlit>=1.32.0
+pandas>=1.5.0
+numpy>=1.23.0
+scikit-learn>=1.2.0
+joblib>=1.2.0
+requests>=2.28.0
+tldextract>=3.4.0
+```
+---
+Dataset
+The model was trained on the Hannousse and Yahiouche (2021) phishing
+URL benchmark dataset, a balanced set of 11,430 labelled URLs (5,715
+phishing and 5,715 legitimate) accompanied by 87 pre-extracted features.
+Citation:
+Hannousse, A., and Yahiouche, S. (2021). Towards benchmark datasets
+for machine learning based website phishing detection: An experimental
+study. Engineering Applications of Artificial Intelligence, 104, 104347.
+https://doi.org/10.1016/j.engappai.2021.104347
+---
+Threat Intelligence Sources
+PhishTank: http://www.phishtank.com
+Operated by Cisco Talos. Human-verified phishing URL database.
+Licensed for free use with attribution.
+URLhaus: https://urlhaus.abuse.ch
+Operated by abuse.ch. Licensed under CC0 (public domain).
+---
+Academic Context
+This project was submitted in partial fulfilment of the requirements
+for the award of the Bachelor of Science degree in Cyber Security at the College of Computing and Information Sciences,
+Caleb University, Imota, Lagos, Nigeria, in the academic session
+2025/2026.
+Supervisor: Professor M. K. Aregbesola
+Department of Computer Science
+Caleb University, Imota, Lagos
+---
+Licence
+This project is released for academic and educational purposes.
+The source code may be used freely for non-commercial research.
+The trained model artefact (model.pkl) is derived from the
+Hannousse and Yahiouche (2021) dataset and is subject to the
+terms of that dataset's licence.
