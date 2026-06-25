@@ -1,3 +1,0 @@
-timestamp,url,prediction,confidence_phishing,confidence_safe
-2026-06-24 10:54:26,paypa1-secure-verify-login.tk/account/update,Phishing,0.7467,0.2533
-2026-06-25 21:28:59,GOOGLE.COM,Safe,0.01,0.99
