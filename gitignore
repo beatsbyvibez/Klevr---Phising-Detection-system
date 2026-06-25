@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Streamlit cache
+.streamlit/secrets.toml
+
+# Blacklist cache (auto-refreshes from feeds)
+cache/
+
+# Training data (too large for GitHub)
+raw_dataset.csv
+urls.csv
+
+# Session data
+prediction_log.csv
+
+# Dissertation document
+*.docx
+
+# Junk files
+=
+
+# Model (too large — host on Git LFS or rebuild locally)
+# model.pkl  <-- keep this commented; we'll include it since it's under 100MB

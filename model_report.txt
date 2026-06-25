@@ -1,0 +1,10 @@
+AI-Powered Phishing URL Detection System
+Model Evaluation Report
+=======================================================
+accuracy              : 0.8928
+precision             : 0.8812
+recall                : 0.9081
+f1                    : 0.8944
+auc                   : 0.9588
+cv_f1_mean            : 0.8932
+cv_f1_std             : 0.0026
